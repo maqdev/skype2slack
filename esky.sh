@@ -50,9 +50,9 @@ if [ "$messages" -eq "1" ]; then
   fi
   qry="$qry;"
   #echo $qry;
-  sqlite3 -csv $db_file "$qry"
+  ./sqlite3 -html $db_file "$qry"
 elif [ "$chats" -eq "1" ]; then
-  sqlite3 -csv $db_file "select id,DisplayName from Conversations"
+  ./sqlite3 -html $db_file "select id,DisplayName from Conversations"
 else
   show_help
   exit 1

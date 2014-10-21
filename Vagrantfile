@@ -11,8 +11,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   # Every Vagrant virtual environment requires a box to build off of.
   config.vm.box = "precise64"
-
+  config.vm.network "private_network", ip: "192.168.50.4"
   config.vm.provider "virtualbox" do |v|
-    v.gui = true
+    v.gui = false
   end
 end
