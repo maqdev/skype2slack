@@ -1,11 +1,12 @@
 package com.maqdev
 
+import scala.concurrent.duration._
+
 import akka.actor.{ActorSystem, Props}
 import akka.io.IO
-import spray.can.Http
 import akka.pattern.ask
 import akka.util.Timeout
-import scala.concurrent.duration._
+import spray.can.Http
 
 object Boot extends App {
 

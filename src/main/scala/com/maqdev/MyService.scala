@@ -16,7 +16,7 @@ class MyServiceActor extends Actor with MyService {
   val conf = ConfigFactory.load()
   val dbPath = conf.getString("db-path")
 
-  val fetcher = context.system.actorOf(Props[FetchNewMessages])
+  val fetcher = context.system.actorOf(Props[FetchNewMessagesActor])
   val scheduler =
     context.system.scheduler.schedule(1500 milliseconds,
       1500 milliseconds,
