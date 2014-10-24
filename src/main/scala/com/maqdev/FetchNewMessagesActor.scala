@@ -1,64 +1,88 @@
 package com.maqdev
 
 /* todo:
-
-* load and save state (json: https://github.com/spray/spray-json)
-* schedule gathering http://doc.akka.io/docs/akka/snapshot/scala/howto.html
-* send messages to external actor
 * external actor posts them to the web
 * supervising
  */
 
 import java.io.File
-import java.sql.{Connection, DriverManager}
+import java.sql.{ResultSet, Connection, DriverManager}
+import java.util.Date
+import java.util.concurrent.TimeUnit
 
-import akka.actor.Actor
+import akka.actor.{ActorRef, Actor}
+import akka.event.Logging
+import com.typesafe.config._
 
-case class FetchNext(db: String)
+case class FetcherState(lastId: Option[Int])
 
-class FetchNewMessagesActor extends Actor {
+class FetchNewMessagesActor(report: ActorRef) extends Actor {
 
-  var lastId: Option[Int] = None
-  var lastEditedTimestamp : Option[Int] = None
+  val log = Logging(context.system, this)
+  var state = FetcherState(None)
+  val conf = ConfigFactory.load()
+  val dbPath = conf.getString("db-path")
+  val statePath = conf.getString("state-path") + "/offset.json"
+
+  import play.api.libs.json._
+  import play.api.libs.functional.syntax._
+  implicit val stateReads = Json.reads[FetcherState]
+  implicit val stateWrites = Json.writes[FetcherState]
 
   override def preStart() {
+    val file = new File(statePath)
+    if (file.exists()) {
+      val source = io.Source.fromFile(file)
+      val stateJsonStr = try {
+        source.getLines().mkString
+      } finally {
+        source.close()
+      }
+      state = Json.fromJson[FetcherState](Json.parse(stateJsonStr)).get
+    }
 
+    schedule()
   }
 
-  def generateStmt(con: Connection) = {
-    val params: List[(String,Int)] = List(
-      lastId.map(id ⇒ ("id > ?", id)),
-      lastEditedTimestamp.map(ts ⇒ ("edited_timestamp >?", ts))
-    ).flatten
-
-    val where = params match {
-      case head :: tail ⇒ "where " + head._1 + tail.map(t ⇒ " or " + t._1)
-      case _ ⇒ ""
+  def saveState() {
+    val file = new File(statePath)
+    val json = Json.toJson[FetcherState](state)
+    val p = new java.io.PrintWriter(file)
+    try {
+      p.write(json.toString())
     }
-    val p = con.prepareStatement("select id, convo_id, author, from_dispname, timestamp, edited_timestamp, body_xml from Messages " + where)
-    params.zipWithIndex.foreach(i ⇒ p.setInt(i._2, i._1._2))
-    p
+    finally {
+      p.close()
+    }
   }
 
   override def receive: Receive = {
-    case fetchNext: FetchNext ⇒ {
-
-      println("Connecting to " + fetchNext.db)
-      val db = DriverManager.getConnection("jdbc:sqlite:" + fetchNext.db)
-
+    case "read" ⇒ {
       try {
-        import scala.collection.JavaConversions._
-
-        val stmt = generateStmt(db)
-        val rs = stmt.executeQuery()
-        while(rs.next())
-        {
-          println (rs.getInt("id") + " - " + rs.getString("body_xml") + " - " + rs.getString("timestamp") + " - " + rs.getString("edited_timestamp"))
+        val prevState = state
+        val db = new SkypeDb(dbPath)
+        try {
+          db.fetchMessages(state.lastId).foreach { message ⇒
+            report ! message
+            state = FetcherState(Some(message.id))
+          }
         }
+        finally {
+          db.close()
+        }
+        if (state != prevState)
+          saveState()
       }
       finally {
-        db.close()
+        schedule()
       }
     }
+  }
+
+  def schedule() = {
+    import context.dispatcher
+    import scala.concurrent.duration._
+    val seconds = conf.getDuration("read-interval", TimeUnit.SECONDS)
+    context.system.scheduler.scheduleOnce(FiniteDuration(seconds, TimeUnit.SECONDS), self, "read")
   }
 }
