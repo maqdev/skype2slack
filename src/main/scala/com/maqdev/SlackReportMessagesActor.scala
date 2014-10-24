@@ -9,12 +9,13 @@ import com.maqdev.SlackApi.SlackChannel
 import com.typesafe.config.ConfigFactory
 
 import scala.collection.mutable
+import akka.pattern.pipe
 
 case class SkypeMessage(id: Int, author: String, authorName: String, channelName: String, channelId: Int, message: String, sent: Date, edited: Date)
 
 trait SlackCommand
-case class AddCmd(map: ChannelMap) extends SlackCommand
-case class RemoveCmd(skypeChannelId: Int) extends SlackCommand
+case class AddCmd(from: String, to: String) extends SlackCommand
+case class RemoveCmd(name: String) extends SlackCommand
 object ListCmd extends SlackCommand
 
 case class ChannelMap(skypeChannelId: Int, slackChannelId: String)
@@ -73,14 +74,28 @@ class SlackReportMessagesActor extends Actor {
         log.error("Slack channel not found, message is lost: {}", m)
       }
     }
-    case ListCmd ⇒ sender() ! channelMap.values.toList
+    case ListCmd ⇒ sender() ! "list"
     case a: AddCmd ⇒ {
-      channelMap += a.map.skypeChannelId → a.map
-      saveState()
+      import context.dispatcher
+
+      SlackApi.getChannelsFromSlack map { channels ⇒
+
+        //SkypeDb.
+        
+
+        //channelMap += a.map.skypeChannelId → a.map
+        saveState()
+        channels.mkString("-")
+      } recover {
+        case error ⇒
+          s"Can't add ${a.from} → ${a.to}. Something happen :-("
+          log.error(error, " while adding {} to {}", a.from, a.to)
+      } pipeTo sender()
     }
-    case r: RemoveCmd ⇒ {
+    /*case r: RemoveCmd ⇒ {
       this.channelMap.remove(r.skypeChannelId)
       saveState()
-    }
+      sender() ! s"""{"text": "Removing channel '$channel'"}"""
+    }*/
   }
 }

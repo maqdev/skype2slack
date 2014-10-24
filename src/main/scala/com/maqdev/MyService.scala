@@ -1,5 +1,6 @@
 package com.maqdev
 
+import akka.util.Timeout
 import com.typesafe.config.Config
 import spray.http
 import spray.routing._
@@ -7,11 +8,13 @@ import spray.http._
 import MediaTypes._
 import akka.actor.Actor
 import akka.actor.Props
+import scala.concurrent.{Promise, Future}
 import scala.concurrent.duration._
+import akka.pattern.ask
 
 // we don't implement our route structure directly in the service actor because
 // we want to be able to test it independently, without having to spin up an actor
-class MyServiceActor extends Actor with MyService {
+class MyServiceActor extends Actor with HttpService {
   import scala.concurrent.ExecutionContext.Implicits.global
 
   import com.typesafe.config._
@@ -29,13 +32,6 @@ class MyServiceActor extends Actor with MyService {
   // other things here, like request stream processing
   // or timeout handling
   def receive = runRoute(myRoute)
-}
-
-
-// this trait defines our service behavior independently from the service actor
-trait MyService extends HttpService {
-
-  val conf: Config
 
   val myRoute =
     path("") {
@@ -51,31 +47,39 @@ trait MyService extends HttpService {
         }
       }
     } ~
-    path("command") {
-      post {
-        entity(as[FormData]) {
-          data ⇒
-            complete {
-            val map = data.fields.toMap
-            val token = map.get("token").getOrElse("")
-            if (token != conf.getString("slack-incoming-token")) {
-              HttpResponse(StatusCodes.Unauthorized, HttpEntity(ContentType(`text/html`), "Unauthorized"))
-            }
-            else {
-              val text = map.get("text").getOrElse("")
-              text match {
-                //case "list" ⇒
+      path("command") {
+        post {
+          entity(as[FormData]) {
+            data ⇒
+              val map = data.fields.toMap
+              val token = map.getOrElse("token", "")
+              if (token != conf.getString("slack-incoming-token")) {
+                complete {
+                  HttpResponse(StatusCodes.Unauthorized, HttpEntity(ContentType(`text/html`), "Unauthorized"))
+                }
               }
+              else {
+                val text = map.getOrElse("text", "")
+                implicit val timeout = Timeout(60 seconds)
+                val response: Future[Any] = text match {
+                  case "list" ⇒ reporter ? ListCmd
+                  case add@r"""add (.+)$from->(.+)$to""" ⇒ reporter ? AddCmd(from, to)
+                  case remove@r"""remove (.+)$channel""" ⇒ reporter ? RemoveCmd(channel)
+                  case _ ⇒ Promise.successful("""Please use one of the following commands:\n - list'\n - 'add {from}->{to}'\n - 'remove {skype-channel}'""").future
+                }
 
-              """
-                |{"text": "Yey!"}
-              """.stripMargin + data
-              HttpResponse(StatusCodes.OK, HttpEntity(ContentType(`text/html`), "Yo!"))
-            }
+                detach() {
+                  complete {
+                    response map {
+                      result =>
+                        HttpResponse(StatusCodes.OK, HttpEntity(ContentType(`application/json`), s"""{"text": "$result"}"""))
+                    }
+                  }
+                }
+              }
           }
         }
       }
-    }
 
   implicit class Regex(sc: StringContext) {
     def r = new util.matching.Regex(sc.parts.mkString, sc.parts.tail.map(_ => "x"): _*)

@@ -24,7 +24,7 @@ class SkypeDb(path: String) extends AutoCloseable {
       case _ ⇒ ""
     }
     val sql = "select id, convo_id, author, from_dispname, timestamp, edited_timestamp, body_xml from Messages" +
-      where// + " order by timestamp"
+      where + " order by timestamp, id"
     //println(sql)
     val p = db.prepareStatement(sql)
     params.zipWithIndex.foreach(i ⇒ p.setInt(i._2+1, i._1._2))
