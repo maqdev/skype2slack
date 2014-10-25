@@ -36,13 +36,9 @@ class MyServiceActor extends Actor with HttpService {
   val myRoute =
     path("") {
       get {
-        respondWithMediaType(`text/html`) { // XML is marshalled to `text/xml` by default, so we simply override here
+        respondWithMediaType(`text/html`) {
           complete {
-            <html>
-              <body>
-                <h1>Say hello to <i>spray-routing</i> on <i>spray-can</i>!</h1>
-              </body>
-            </html>
+            <html>Yo!</html>
           }
         }
       }
@@ -65,14 +61,14 @@ class MyServiceActor extends Actor with HttpService {
                   case "list" ⇒ reporter ? ListCmd
                   case add@r"""add (.+)$from->(.+)$to""" ⇒ reporter ? AddCmd(from.trim, to.trim)
                   case remove@r"""remove (.+)$channel""" ⇒ reporter ? RemoveCmd(channel.trim)
-                  case _ ⇒ Promise.successful("""Please use one of the following commands:\n - list'\n - 'add {from}->{to}'\n - 'remove {skype-channel}'""").future
+                  case _ ⇒ Promise.successful("Please use one of the following commands:\n - list'\n - 'add {from}->{to}'\n - 'remove {skype-channel}'").future
                 }
 
                 detach() {
                   complete {
                     response map {
                       result =>
-                        HttpResponse(StatusCodes.OK, HttpEntity(ContentType(`application/json`), s"""{"text": "$result"}"""))
+                        HttpResponse(StatusCodes.OK, HttpEntity(ContentType(`text/plain`), result.toString))
                     }
                   }
                 }

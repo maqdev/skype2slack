@@ -1,3 +1,5 @@
+import AssemblyKeys._
+
 organization  := "com.github.maqdev"
 
 version       := "0.1"
@@ -23,4 +25,4 @@ libraryDependencies ++= {
   )
 }
 
-Revolver.settings
+Revolver.settings ++ assemblySettings

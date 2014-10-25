@@ -93,7 +93,7 @@ class SlackReportMessagesActor extends Actor {
       import context.dispatcher
       channels map {
         case (skypeChats, slackChannels) ⇒
-          slackChannels.find(_.name.compareToIgnoreCase(a.to) == 0).map { slackChannel ⇒
+          slackChannels.find(sl ⇒ ("#"+sl.name).compareToIgnoreCase(a.to) == 0).map { slackChannel ⇒
             skypeChats.find(_.name.compareToIgnoreCase(a.from) == 0) map { skypeChat ⇒
 
               val c = ChannelMap(skypeChat.id, slackChannel.id)
