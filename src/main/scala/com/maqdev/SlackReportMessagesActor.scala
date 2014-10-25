@@ -100,7 +100,7 @@ class SlackReportMessagesActor extends Actor {
               channelMap.put(c.skypeChannelId, c)
               saveState()
 
-              s"`${a.from}` routed from Skype to #${a.to}"
+              s"`${a.from}` routed from Skype to ${a.to}"
             } getOrElse {
               s"No such Skype chat: '${a.from}' here is possible values: \n" + skypeChats.map(x ⇒ "`" + x.name + "`").mkString("\n")
             }
