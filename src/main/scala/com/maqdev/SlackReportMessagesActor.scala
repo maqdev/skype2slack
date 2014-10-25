@@ -1,7 +1,6 @@
 package com.maqdev
 
 import java.io.File
-import java.util.Date
 
 import akka.actor.Actor
 import akka.event.Logging
@@ -11,7 +10,8 @@ import com.typesafe.config.ConfigFactory
 import scala.collection.mutable
 import akka.pattern.pipe
 
-case class SkypeMessage(id: Int, author: String, authorName: String, channelName: String, channelId: Int, message: String, sent: Date, edited: Date)
+import scala.concurrent.Future
+
 
 trait SlackCommand
 case class AddCmd(from: String, to: String) extends SlackCommand
@@ -25,6 +25,7 @@ class SlackReportMessagesActor extends Actor {
 
   val log = Logging(context.system, this)
   val conf = ConfigFactory.load()
+  val dbPath = conf.getString("db-path")
   val statePath = conf.getString("state-path") + "/channels.json"
   val botName = conf.getString("bot-name")
   val defaultChannel = conf.getString("default-channel")
@@ -74,28 +75,76 @@ class SlackReportMessagesActor extends Actor {
         log.error("Slack channel not found, message is lost: {}", m)
       }
     }
-    case ListCmd ⇒ sender() ! "list"
+    case ListCmd ⇒ {
+      import context.dispatcher
+      channels map {
+        case (skypeChats, slackChannels) ⇒
+        val skypeChatsMap = skypeChats.map(a ⇒ a.id → a.name).toMap
+        val slackChannelsMap = slackChannels.map(a ⇒ a.id → a.name).toMap
+
+        "Here is what i found:\n" +
+          channelMap.values.map { c ⇒
+            skypeChatsMap.getOrElse(c.skypeChannelId, "@"+c.skypeChannelId) + "-> #" +
+              slackChannelsMap.getOrElse(c.slackChannelId, c.slackChannelId)
+          }.mkString("\n")
+      } pipeTo sender()
+    }
     case a: AddCmd ⇒ {
       import context.dispatcher
+      channels map {
+        case (skypeChats, slackChannels) ⇒
+          slackChannels.find(_.name.compareToIgnoreCase(a.to) == 0).map { slackChannel ⇒
+            skypeChats.find(_.name.compareToIgnoreCase(a.from) == 0) map { skypeChat ⇒
 
-      SlackApi.getChannelsFromSlack map { channels ⇒
+              val c = ChannelMap(skypeChat.id, slackChannel.id)
+              channelMap.put(c.skypeChannelId, c)
+              saveState()
 
-        //SkypeDb.
-        
-
-        //channelMap += a.map.skypeChannelId → a.map
-        saveState()
-        channels.mkString("-")
-      } recover {
+              s"`${a.from}` routed from Skype to #${a.to}"
+            } getOrElse {
+              s"No such Skype chat: '${a.from}' here is possible values: \n" + skypeChats.map(x ⇒ "`" + x.name + "`").mkString("\n")
+            }
+          } getOrElse {
+            s"No such Slack channel: '${a.to}' here is possible values: \n" + slackChannels.map(x ⇒ "#" + x.name).mkString("\n")
+          }
+        } recover {
         case error ⇒
           s"Can't add ${a.from} → ${a.to}. Something happen :-("
           log.error(error, " while adding {} to {}", a.from, a.to)
+        } pipeTo sender()
+    }
+
+    case removeCmd: RemoveCmd ⇒ {
+      import context.dispatcher
+      channels map {
+        case (skypeChats, _) ⇒
+
+          val c = skypeChats.find( sc ⇒ sc.name.compareToIgnoreCase(removeCmd.name) == 0 ||
+            ("@" + removeCmd.name) == sc.id.toString)
+
+          c map { chat ⇒
+            channelMap.remove(chat.id)
+            saveState()
+            s"Skype chat `${chat.name}` custom mapping is removed and routed to default channel: #$defaultChannel"
+          } getOrElse {
+            s"No such Skype chat: '${removeCmd.name}' here is possible values: \n" + skypeChats.map(x ⇒ "`" + x.name + "`").mkString("\n")
+          }
       } pipeTo sender()
     }
-    /*case r: RemoveCmd ⇒ {
-      this.channelMap.remove(r.skypeChannelId)
-      saveState()
-      sender() ! s"""{"text": "Removing channel '$channel'"}"""
-    }*/
+  }
+
+  def channels: Future[(List[SkypeChat], List[SlackChannel])] = {
+    import context.dispatcher
+    val f = SlackApi.getChannelsFromSlack
+    val db = new SkypeDb(dbPath)
+    val skypeChats = try {
+      db.getConversations.toList
+    }
+    finally {
+      db.close()
+    }
+    f map { slackChannels ⇒
+      (skypeChats, slackChannels)
+    }
   }
 }

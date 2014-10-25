@@ -5,6 +5,9 @@ import java.util.Date
 import java.util.concurrent.{Callable, TimeUnit}
 import com.google.common.cache.{Cache, CacheBuilder}
 
+case class SkypeMessage(id: Int, author: String, authorName: String, channelName: String, channelId: Int, message: String, sent: Date, edited: Date)
+case class SkypeChat(id: Int, name: String)
+
 class SkypeDb(path: String) extends AutoCloseable {
   val db = DriverManager.getConnection("jdbc:sqlite:" + path)
 
@@ -63,6 +66,14 @@ class SkypeDb(path: String) extends AutoCloseable {
           new Date(1000l * rs.getInt("timestamp")),
           if (rs.getString("edited_timestamp") != null) new Date(1000l * rs.getInt("edited_timestamp")) else null
         )
+    }
+  }
+
+  def getConversations : Iterator[SkypeChat] = {
+    val channelStmt = db.prepareStatement("select id, DisplayName from Conversations order by DisplayName")
+    iterator(channelStmt.executeQuery()) map {
+      rs ⇒
+        SkypeChat(rs.getInt("id"), rs.getString("DisplayName"))
     }
   }
 

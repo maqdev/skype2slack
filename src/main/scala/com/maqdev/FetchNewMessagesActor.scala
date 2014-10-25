@@ -1,10 +1,5 @@
 package com.maqdev
 
-/* todo:
-* external actor posts them to the web
-* supervising
- */
-
 import java.io.File
 import java.sql.{ResultSet, Connection, DriverManager}
 import java.util.Date

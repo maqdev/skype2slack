@@ -63,8 +63,8 @@ class MyServiceActor extends Actor with HttpService {
                 implicit val timeout = Timeout(60 seconds)
                 val response: Future[Any] = text match {
                   case "list" ⇒ reporter ? ListCmd
-                  case add@r"""add (.+)$from->(.+)$to""" ⇒ reporter ? AddCmd(from, to)
-                  case remove@r"""remove (.+)$channel""" ⇒ reporter ? RemoveCmd(channel)
+                  case add@r"""add (.+)$from->(.+)$to""" ⇒ reporter ? AddCmd(from.trim, to.trim)
+                  case remove@r"""remove (.+)$channel""" ⇒ reporter ? RemoveCmd(channel.trim)
                   case _ ⇒ Promise.successful("""Please use one of the following commands:\n - list'\n - 'add {from}->{to}'\n - 'remove {skype-channel}'""").future
                 }
 
