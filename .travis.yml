@@ -8,4 +8,4 @@ env:
   global:
     secure: fjr9Ha3DOJvIlE2YUs4bb+VQ4PjNyEJtFSUEhrd7c/IS+mWFLUCBW9gHwY374p7RRMOK1Mm+f8BIIBatRcQ8aMkXebCJ0pK3j5irWiLqFLFizMtDpFHKbsD/fD87BFqPOWY1f8P0e28l2AQ+gZEeWcyJY9G6qVOMXSC55L0+qiI=
 after_success:
-    "curl --ftp-create-dirs -T ./target/scala-2.11/skype-bot-assembly-0.1.jar -u $TRAVIS_USER:$TRAVIS_PASSWORD scp://104.131.110.181/home/travis"
+    "curl -T ./target/scala-2.11/skype-bot-assembly-0.1.jar -u $TRAVIS_USER:$TRAVIS_PASSWORD https://104.131.110.181/home/travis"
