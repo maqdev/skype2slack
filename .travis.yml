@@ -3,8 +3,9 @@ scala:
 - 2.11.3
 jdk:
 - oraclejdk7
+script: "sbt ++2.11.3 test assembly"
 env:
   global:
-    secure: dcPZ74Y0agqKdUqsJMa4qehiZ+z7gB3if0502z9QFS0uz0NJHtLv9Ty3SGiud6qX6vtXozIQMiXLT8pVC9/8Oa2oYBezLvzgcS/zmfpFI7mL8db4FJIYJHtuZ/oAt9i72gPT8nc47X8AFSJlZMwIQpdWuIMUhUrNkZ1Zyi4FVaU=
+    secure: fjr9Ha3DOJvIlE2YUs4bb+VQ4PjNyEJtFSUEhrd7c/IS+mWFLUCBW9gHwY374p7RRMOK1Mm+f8BIIBatRcQ8aMkXebCJ0pK3j5irWiLqFLFizMtDpFHKbsD/fD87BFqPOWY1f8P0e28l2AQ+gZEeWcyJY9G6qVOMXSC55L0+qiI=
 after_success:
-    "curl --ftp-create-dirs -T build.sbt -u A:1 sftp://104.131.110.181/deploy"
+    "curl --ftp-create-dirs -T ./target/scala-2.11/skype-bot-assembly-0.1.jar -u $TRAVIS_USER:$TRAVIS_PASSWORD scp://104.131.110.181/home/travis"
