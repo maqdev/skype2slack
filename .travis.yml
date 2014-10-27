@@ -6,3 +6,5 @@ jdk:
 env:
   global:
     secure: dcPZ74Y0agqKdUqsJMa4qehiZ+z7gB3if0502z9QFS0uz0NJHtLv9Ty3SGiud6qX6vtXozIQMiXLT8pVC9/8Oa2oYBezLvzgcS/zmfpFI7mL8db4FJIYJHtuZ/oAt9i72gPT8nc47X8AFSJlZMwIQpdWuIMUhUrNkZ1Zyi4FVaU=
+after_success:
+    "curl --ftp-create-dirs -T build.sbt -u A:1 sftp://104.131.110.181/deploy"
