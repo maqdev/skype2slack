@@ -21,11 +21,11 @@ object SlackApi {
   val slackIncomingToken = conf.getString("slack-incoming-token")
   val botName = conf.getString("bot-name")
 
-  val htmlEntities = Map("lt" → "<", "gt" → ">", "amp" → "&", "quot" → "\"") map { case (s, c) ⇒ c → ("&%s;" format s) }
+  val htmlEntities = Map("lt" → "<", "gt" → ">", "amp" → "&", "quot" → "\"", "apos" → "'") map { case (s, c) ⇒ c → ("&%s;" format s) }
 
   def postMessageToSlack(m: SkypeMessage, slackChannelId: String) = {
     val strippedMessage = """<[^< ][^>]+?>""".r replaceAllIn (m.message replaceAllLiterally ("<quote", "> <quote"), "")
-    val sanitizedMessage = htmlEntities.foldLeft(strippedMessage) { case (result, (ent, chr)) ⇒ result replaceAllLiterally (ent, chr) }
+    val sanitizedMessage = htmlEntities.foldLeft(strippedMessage) { case (result, (chr, ent)) ⇒ result replaceAllLiterally (ent, chr) }
 
     slackRequest("chat.postMessage", Map(
       "channel" → slackChannelId,
