@@ -88,9 +88,9 @@ object SlackApi {
   case class SlackChannelPurpose(value: String)
   case class SlackChannelInfo(id: String, name: String, purpose: SlackChannelPurpose)
 
-  case class SlackChannelsListResult(channels: List[SlackChannelInfo]) extends SlackRequestResult
-  case class SlackChannelsInfoResult(channel: SlackChannelInfo) extends SlackRequestResult
-  case class SlackChatResult(channel: String, ts: String) extends SlackRequestResult
+  case class SlackChannelsListResult(override val ok: Boolean, channels: List[SlackChannelInfo]) extends SlackRequestResult
+  case class SlackChannelsInfoResult(override val ok: Boolean, channel: SlackChannelInfo) extends SlackRequestResult
+  case class SlackChatResult(override val ok: Boolean, channel: String, ts: String) extends SlackRequestResult
 
   implicit val slackChannelPurposeReads = Json.reads[SlackChannelPurpose]
   implicit val slackChannelInfo = Json.reads[SlackChannelInfo]
