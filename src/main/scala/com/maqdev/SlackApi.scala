@@ -21,16 +21,19 @@ object SlackApi {
   val slackIncomingToken = conf.getString("slack-incoming-token")
   val botName = conf.getString("bot-name")
 
+  val htmlEntities = Map("lt" → "<", "gt" → ">", "amp" → "&", "quot" → "\"") map { case (s, c) ⇒ c → ("&%s;" format s) }
+
   def postMessageToSlack(m: SkypeMessage, slackChannelId: String) = {
-    val sanitizedMessage = """<[^< ][^>]+?>""".r replaceAllIn (m.message replaceAll ("<quote", "> <quote"), "")
-    
+    val strippedMessage = """<[^< ][^>]+?>""".r replaceAllIn (m.message replaceAllLiterally ("<quote", "> <quote"), "")
+    val sanitizedMessage = htmlEntities.foldLeft(strippedMessage) { case (result, (ent, chr)) ⇒ result replaceAllLiterally (ent, chr) }
+
     slackRequest("chat.postMessage", Map(
       "channel" → slackChannelId,
       "username" → s"${m.authorName} @ Skype",
       "icon_url" → s"http://api.skype.com/users/${m.author}/profile/avatar",
       "parse" → s"full",
-      "link_names" → s"1", 
-      "unfurl_links" → s"true", 
+      "link_names" → s"1",
+      "unfurl_links" → s"true",
       "unfurl_media" → s"true",
       "text" → sanitizedMessage
     ))
