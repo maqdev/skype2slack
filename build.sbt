@@ -1,5 +1,7 @@
 import AssemblyKeys._
 
+name := "skype-bot"
+
 organization  := "com.github.maqdev"
 
 version       := "0.1"
@@ -7,6 +9,8 @@ version       := "0.1"
 scalaVersion  := "2.11.3"
 
 scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8")
+
+resolvers += "Typesafe Releases" at "http://repo.typesafe.com/typesafe/releases/"
 
 libraryDependencies ++= {
   val akkaV = "2.3.6"
