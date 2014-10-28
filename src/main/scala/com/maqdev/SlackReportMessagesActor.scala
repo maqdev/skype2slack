@@ -4,7 +4,7 @@ import java.io.File
 
 import akka.actor.Actor
 import akka.event.Logging
-import com.maqdev.SlackApi.SlackChannel
+import com.maqdev.SlackApi.SlackChannelInfo
 import com.typesafe.config.ConfigFactory
 
 import scala.collection.mutable
@@ -50,7 +50,7 @@ class SlackReportMessagesActor extends Actor {
     }
 
     defaultChannelId = SlackApi.getChannelsFromSlackSync.collect {
-      case x: SlackChannel if x.name.compareToIgnoreCase(defaultChannel) == 0 ⇒ x.id
+      case x: SlackChannelInfo if x.name.compareToIgnoreCase(defaultChannel) == 0 ⇒ x.id
     }.headOption
   }
 
@@ -133,7 +133,7 @@ class SlackReportMessagesActor extends Actor {
     }
   }
 
-  def channels: Future[(List[SkypeChat], List[SlackChannel])] = {
+  def channels: Future[(List[SkypeChat], List[SlackChannelInfo])] = {
     import context.dispatcher
     val f = SlackApi.getChannelsFromSlack
     val db = new SkypeDb(dbPath)
