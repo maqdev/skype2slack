@@ -8,6 +8,7 @@ import spray.http.Uri
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
+import scala.util.matching._
 
 object SlackApi {
   import scala.concurrent.ExecutionContext.Implicits.global
@@ -21,10 +22,17 @@ object SlackApi {
   val botName = conf.getString("bot-name")
 
   def postMessageToSlack(m: SkypeMessage, slackChannelId: String) = {
+    val sanitizedMessage = """<[^< ][^>]+?>""".r replaceAllIn (m.message replaceAll ("<quote", "> <quote"), "")
+    
     slackRequest("chat.postMessage", Map(
       "channel" → slackChannelId,
-      "username" → s"${m.authorName} [$botName]",
-      "text" → m.message
+      "username" → s"${m.authorName} @ Skype",
+      "icon_url" → s"http://api.skype.com/users/${m.author}/profile/avatar",
+      "parse" → s"full",
+      "link_names" → s"1", 
+      "unfurl_links" → s"true", 
+      "unfurl_media" → s"true",
+      "text" → sanitizedMessage
     ))
   }
 
