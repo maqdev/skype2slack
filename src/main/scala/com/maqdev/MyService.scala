@@ -6,6 +6,7 @@ import spray.http
 import spray.routing._
 import spray.http._
 import MediaTypes._
+import HttpCharsets._
 import akka.actor.Actor
 import akka.actor.Props
 import scala.concurrent.{Promise, Future}
@@ -68,7 +69,7 @@ class MyServiceActor extends Actor with HttpService {
                   complete {
                     response map {
                       result =>
-                        HttpResponse(StatusCodes.OK, HttpEntity(ContentType(`text/plain`), result.toString))
+                        HttpResponse(StatusCodes.OK, HttpEntity(ContentType(`text/plain`, `UTF-8`), result.toString))
                     }
                   }
                 }

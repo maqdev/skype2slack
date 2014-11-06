@@ -52,7 +52,6 @@ class SkypeDb(path: String) extends AutoCloseable {
       rs ⇒
         val convoId = rs.getInt("convo_id")
         val channelName = SkypeDb.getOrLoad(path, convoId, () ⇒ {
-          println("loading channel name #" + convoId)
           getChannelName(channelStmt, convoId)
         })
 
@@ -62,12 +61,14 @@ class SkypeDb(path: String) extends AutoCloseable {
           rs.getString("from_dispname"),
           channelName,
           convoId,
-          rs.getString("body_xml"),
+          nvl(rs.getString("body_xml")),
           new Date(1000l * rs.getInt("timestamp")),
           if (rs.getString("edited_timestamp") != null) new Date(1000l * rs.getInt("edited_timestamp")) else null
         )
     }
   }
+
+  def nvl(s: String) = if (s == null) "" else s
 
   def getConversations : Iterator[SkypeChat] = {
     val channelStmt = db.prepareStatement("select id, DisplayName from Conversations order by DisplayName")
