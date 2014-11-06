@@ -24,7 +24,9 @@ object SlackApi {
   val htmlEntities = Map("lt" → "<", "gt" → ">", "amp" → "&", "quot" → "\"", "apos" → "'") map { case (s, c) ⇒ c → ("&%s;" format s) }
 
   def postMessageToSlack(m: SkypeMessage, slackChannelId: String) = {
-    val strippedMessage = """<[^< ][^>]+?>""".r replaceAllIn (m.message replaceAllLiterally ("<quote", "> <quote"), "")
+    val strippedPartlist = """<partlist .+?</partlist>""".r replaceAllIn (m.message, "")
+    var prefixedQuotes = strippedPartlist replaceAllLiterally ("<quote", "> <quote")
+    val strippedMessage = """<[^< ][^>]+?>""".r replaceAllIn (prefixedQuotes, "")
     val sanitizedMessage = htmlEntities.foldLeft(strippedMessage) { case (result, (chr, ent)) ⇒ result replaceAllLiterally (ent, chr) }
 
     slackRequest("chat.postMessage", Map(
